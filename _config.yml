@@ -1,5 +1,14 @@
 
 theme: minima
+skin: auto
+header_pages:
+  - about.md
+  - rules.md
+# minima:
+#  date_format: "%b %-d, %Y"
+#  date_format: "%b %-d, %Y"
+
+
 lsi: false
 safe: true
 source: /web/
