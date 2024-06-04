@@ -1,4 +1,4 @@
-theme: minimal-mistakes-jekyll
+theme: jekyll-theme-minimal
 lsi: false
 safe: true
 source: /web/
