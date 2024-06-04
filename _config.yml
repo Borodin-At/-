@@ -1,4 +1,5 @@
-theme: jekyll-theme-minima
+
+theme: minima
 lsi: false
 safe: true
 source: /web/
