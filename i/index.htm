@@ -1,0 +1,199 @@
+<!DOCTYPE html><html lang="ru"><head><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>↗️Redirect</title><link href="data:image/x-icon;base64,AAABAAEAEBAQAAEABAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA////AADgBwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEQAAAAAAAAEiEAAAAAAAASIhAAAAAAAAEiIQAAAAAAABIiEAABAAAAASIhABIQAAAAEiIQEiEAAAABIiESIQAAAAASIhIhAAAAAAEiIiEAAAABERIiIQAAABIiIiIhAAAAASIiIiEAAAAAEREREAAAAAAAAAAAD//wAAz/8AAIf/AACD/wAAwf8AAOD3AADwYwAA+CEAAPwBAAD+AQAA/wEAAPwBAAD4AQAA/AEAAP4DAAD//wAA" rel="icon" type="image/x-icon" />
+<!-- TODO: add beautiful icon -->
+
+<script>
+if (!String.prototype.replaceAll)
+{
+	String.prototype.replaceAll = String.prototype.replaceAll = function(target, replacement)
+	{
+        return this.split(target).join(replacement);
+    };
+}
+
+function b64ToUint6 (nChr)
+{
+  return nChr > 64 && nChr < 91 ?
+      nChr - 65
+    : nChr > 96 && nChr < 123 ?
+      nChr - 71
+    : nChr > 47 && nChr < 58 ?
+      nChr + 4
+    : nChr === 43 ?
+      62
+    : nChr === 47 ?
+      63
+    :
+      0;
+}
+
+function get_query_params(qs)
+{
+    /*  function decode parameters from GET
+    */
+    qs = qs.split('+').join(' ');
+
+    var params = {},
+        tokens,
+        re = /[?&]?([^=]+)=([^&]*)/g;
+
+    while (tokens = re.exec(qs))
+    {
+        params[decodeURIComponent(tokens[1])] = decodeURIComponent(tokens[2]);
+    }
+
+    return params;
+}
+
+function base64url_to_b64 (base64)
+{
+    //  Convert string from base64url format to normal base64 format
+    base64 = base64.replaceAll('-','+');
+    base64 = base64.replaceAll('_','/');
+    base64 = base64.replaceAll('.','=');
+    return base64;
+}
+
+function base64DecToArr (sBase64, nBlocksSize) {
+  var
+    sB64Enc = sBase64.replace(/[^A-Za-z0-9\+\/]/g, ""), nInLen = sB64Enc.length,
+    nOutLen = nBlocksSize ? Math.ceil((nInLen * 3 + 1 >> 2) / nBlocksSize) * nBlocksSize : nInLen * 3 + 1 >> 2, taBytes = new Uint8Array(nOutLen);
+
+  for (var nMod3, nMod4, nUint24 = 0, nOutIdx = 0, nInIdx = 0; nInIdx < nInLen; nInIdx++) {
+    nMod4 = nInIdx & 3;
+    nUint24 |= b64ToUint6(sB64Enc.charCodeAt(nInIdx)) << 6 * (3 - nMod4);
+    if (nMod4 === 3 || nInLen - nInIdx === 1) {
+      for (nMod3 = 0; nMod3 < 3 && nOutIdx < nOutLen; nMod3++, nOutIdx++) {
+        taBytes[nOutIdx] = nUint24 >>> (16 >>> nMod3 & 24) & 255;
+      }
+      nUint24 = 0;
+
+    }
+  }
+
+  return taBytes;
+}
+
+function xor_decode (buffarr8bit)
+{
+    //  get control byte from zero element
+    old_xor = buffarr8bit[0];
+
+    decoded_buffarray = new Uint8Array(buffarr8bit.length-1);
+
+    //  Decode all bytes with one byte checksum, using XOR, start from second element!
+    for (i = 0; i < decoded_buffarray.length; i++)
+    {
+        decoded_buffarray[i] = old_xor ^ buffarr8bit[i+1];
+    }
+
+    //  check validity of output array.
+    new_xor = 0;
+    for (i = 0; i < decoded_buffarray.length; i++)
+    {
+        // calculate checksum for all bytes in the input string
+        new_xor = new_xor ^ decoded_buffarray[i];
+    }
+
+    console.log('old_xor='+old_xor+' new_xor: '+new_xor);
+    console.log('decoded_buffarray='+decoded_buffarray+'  ');
+    //  encoded decoded bufferarray
+    if (old_xor == new_xor) return decoded_buffarray;
+
+    //  Return false if data corrupted
+    return false;
+}
+
+function UTF8ArrToStr (aBytes)
+{
+  var sView = "";
+
+  for (var nPart, nLen = aBytes.length, nIdx = 0; nIdx < nLen; nIdx++) {
+    nPart = aBytes[nIdx];
+    sView += String.fromCharCode(
+      nPart > 251 && nPart < 254 && nIdx + 5 < nLen ? /* six bytes */
+        /* (nPart - 252 << 30) may be not so safe in ECMAScript! So...: */
+        (nPart - 252) * 1073741824 + (aBytes[++nIdx] - 128 << 24) + (aBytes[++nIdx] - 128 << 18) + (aBytes[++nIdx] - 128 << 12) + (aBytes[++nIdx] - 128 << 6) + aBytes[++nIdx] - 128
+      : nPart > 247 && nPart < 252 && nIdx + 4 < nLen ? /* five bytes */
+        (nPart - 248 << 24) + (aBytes[++nIdx] - 128 << 18) + (aBytes[++nIdx] - 128 << 12) + (aBytes[++nIdx] - 128 << 6) + aBytes[++nIdx] - 128
+      : nPart > 239 && nPart < 248 && nIdx + 3 < nLen ? /* four bytes */
+        (nPart - 240 << 18) + (aBytes[++nIdx] - 128 << 12) + (aBytes[++nIdx] - 128 << 6) + aBytes[++nIdx] - 128
+      : nPart > 223 && nPart < 240 && nIdx + 2 < nLen ? /* three bytes */
+        (nPart - 224 << 12) + (aBytes[++nIdx] - 128 << 6) + aBytes[++nIdx] - 128
+      : nPart > 191 && nPart < 224 && nIdx + 1 < nLen ? /* two bytes */
+        (nPart - 192 << 6) + aBytes[++nIdx] - 128
+      : /* nPart < 127 ? */ /* one byte */
+        nPart
+    );
+  }
+
+  return sView;
+}
+
+
+function do_redirect()
+{
+    // Get string from GET-request
+    var query = get_query_params(document.location.search);
+    if (!query.i)
+    {
+        console.log('No GET[i] parameter defined');
+        return false;
+    }
+    base64 = base64url_to_b64(query.i);
+    console.log('base64 ' + base64);
+    var buffarray = base64DecToArr(base64);
+    console.log('buffarray ' + buffarray);
+    decoded_buffarray = xor_decode(buffarray);
+    /* handle redirect errors here */
+    if (!decoded_buffarray)
+    {
+        console.log('Error in decoded data');
+        document.write('<H1>URL address error!</H1>>');
+        return false;
+    }
+    var url = UTF8ArrToStr(decoded_buffarray);
+    console.log('url ' + url);
+
+    document.write('<a target="_blank" href="'+url+'">'+url+'</a>');
+    window.location.replace(url);
+    window.location.href = url;
+}
+
+
+setTimeout( function() { do_redirect(); }, 5);
+
+document.addEventListener('DOMContentLoaded', function() {
+    do_redirect();
+}, false);
+
+</script>
+
+<style type="text/css">
+body
+{
+    margin:.5em auto;
+    padding:.5em;
+    text-align:left;
+    font-family:sans;
+    color:#000;
+    background-color:#FFF;
+}
+ @media print
+ {
+    *
+    {
+        color: #000;
+        background-colorcolor: #fff;
+    }
+    thead
+    {
+        display: table-header-group;
+    }
+}
+
+</style>
+</head>
+<body>
+
+</body>
+</html>
